@@ -1,0 +1,33 @@
+{
+  "name": "with-superfine",
+  "version": "0.0.1",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "nyc ava",
+    "start": "parcel ./src/index.html"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ferp": "^1.0",
+    "superfine": "^7.0.0"
+  },
+  "devDependencies": {
+    "ava": "^3.5.0",
+    "browser-env": "^3.3.0",
+    "jsdom": "^16.2.0",
+    "nyc": "^15.0.0",
+    "parcel-bundler": "^1.12.4",
+    "sinon": "^7.2.3"
+  },
+  "ava": {
+    "files": [
+      "src/**/*.test.js"
+    ],
+    "require": [
+      "./src/ava.setup.js"
+    ],
+    "verbose": true
+  }
+}
