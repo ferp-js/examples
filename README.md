@@ -12,3 +12,4 @@ Feel free to clone these examples, and follow their respective README files.
 ## Quick links
 
  - [Example using superfine for rendering markup](./with-superfine)
+ - [Various NodeJS centric commandline examples](./cli)
