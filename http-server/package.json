@@ -1,0 +1,24 @@
+{
+  "name": "http-server",
+  "version": "0.0.1",
+  "description": "Simple http server using ferp",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "nyc ava",
+    "start": "node src/index.js"
+  },
+  "author": "Alex Barry",
+  "license": "MIT",
+  "dependencies": {
+    "ferp": "^1.0"
+  },
+  "devDependencies": {
+    "ava": "^3.5.0",
+    "nyc": "^15.0.0"
+  },
+  "ava": {
+    "files": [
+      "src/**/*.test.js"
+    ]
+  }
+}
