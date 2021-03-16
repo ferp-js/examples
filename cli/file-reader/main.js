@@ -4,56 +4,37 @@ const path = require('path');
 
 const { updateLogger } = require('../common/updateLogger.js');
 
-const { batch, defer, none } = ferp.effects;
+const { act, defer, none } = ferp.effects;
 
-const getFileContents = readFile => file => new Promise((resolve, reject) => {
+const readEffect = (file, onSuccess, onError, readFile) => defer((resolve) => {
   readFile(file, { encoding: 'utf-8' }, (err, data) => {
     if (err) {
-      reject(err);
-    } else {
-      resolve(data);
+      return resolve(onError(err));
     }
+    return resolve(onSuccess(data));
   });
 });
 
-const readFile = (getter, errorMessage, successMessage) => filePath => defer(
-  getter(filePath)
-    .then(data => ({ type: successMessage, filePath, data }))
-    .catch(err => ({ type: errorMessage, filePath, err })),
-);
+const ReadOk = (data) => (state) => [{ ...state, content: data }, none()];
+const ReadErr = (error) => (state) => [{ ...state, error: error.message }, none()];
 
-const init = reader => [
-  { content: '', error: '' },
-  batch([
-    reader(path.resolve(__dirname, './hello-world.txt')),
-    reader(path.resolve(__dirname, './hello-world.txt.garbage')),
-  ]),
+const init = (file, readFile = fs.readFile) => [
+  { file, content: '', error: '' },
+  readEffect(
+    path.resolve(__dirname, file),
+    (data) => act(ReadOk, data),
+    (err) => act(ReadErr, err),
+    readFile,
+  ),
 ];
 
-const update = (message, state) => {
-  switch (message.type) {
-    case 'READ_OK':
-      // Can do something with message.data
-      return [Object.assign({}, state, { content: message.data }), none()];
-
-    case 'READ_ERR':
-      // Can do something with message.err
-      return [Object.assign({}, state, { error: message.err.message }), none()];
-
-    default:
-      return [state, none()];
-  }
-};
-
-const main = () => ferp.app({
-  init: init(readFile(getFileContents(fs.readFile), 'READ_ERR', 'READ_OK')),
-  update: updateLogger(update),
+const main = (file = 'hello-world.txt', readFileFn = fs.readFile) => ferp.app({
+  init: init(file, readFileFn),
+  observe: updateLogger,
 });
 
 module.exports = {
-  getFileContents,
-  readFile,
+  readEffect,
   init,
-  update,
   main,
 };

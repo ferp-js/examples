@@ -2,26 +2,34 @@ const ferp = require('ferp');
 
 const { updateLogger } = require('../common/updateLogger.js');
 
-const { delay, none } = ferp.effects;
+const { act, defer, none } = ferp.effects;
 
-const update = (_, state) => {
-  const nextState = state + 1;
-  return [
-    nextState,
-    nextState < 5 ? delay(null, 1000) : none(),
-  ];
-};
+const delay = (action, milliseconds) => defer((resolve) => {
+  setTimeout(resolve, milliseconds, action);
+});
 
-const main = () => ferp.app({
-  init: [
-    0,
-    delay(null, 1000),
-  ],
+const Schedule = (NextAction) => (state) => [
+  state,
+  state.value >= state.max ? none() : delay(NextAction, state.delay),
+];
 
-  update: updateLogger(update),
+const Tick = (state) => [
+  { ...state, value: state.value + 1 },
+  act(Schedule, act(Tick)),
+];
+
+const init = (max, millisecondDelay) => [
+  { value: 0, max, delay: millisecondDelay },
+  act(Tick),
+];
+
+const main = (max, millisecondDelay) => ferp.app({
+  init: init(max, millisecondDelay),
+
+  observe: updateLogger,
 });
 
 module.exports = {
-  update,
+  init,
   main,
 };

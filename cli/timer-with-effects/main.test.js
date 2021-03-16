@@ -1,21 +1,46 @@
 const test = require('ava');
-const { effects } = require('ferp');
-const { update, main } = require('./main.js');
+const { app, effects } = require('ferp');
+const { init } = require('./main.js');
 
-test('update increases state value and adds delay', (t) => {
-  const [nextState, nextEffects] = update(null, 0);
-  t.is(nextState, 1);
-  t.notDeepEqual(nextEffects, effects.none());
+const makeTestRig = (max, delay, observe) => app({
+  init: init(max, delay),
+  observe,
 });
 
-test('update stops when the next state value is greater than or equal to 5', (t) => {
-  const [nextState, nextEffects] = update(null, 4);
-  t.is(nextState, 5);
-  t.deepEqual(nextEffects, effects.none());
+test.cb('it starts with a tick immediately', (t) => {
+  const max = 1;
+  const delay = 0;
+
+  const expectedStates = [
+    { value: 0, max, delay },
+    { value: 1, max, delay },
+    { value: 1, max, delay },
+  ];
+
+  makeTestRig(max, delay, ([state]) => {
+    t.deepEqual(state, expectedStates.shift());
+    if (expectedStates.length === 0) {
+      t.end();
+    }
+  });
 });
 
-test('main creates the app', (t) => {
-  const detach = main();
-  t.is(typeof detach, 'function');
-  detach();
+test.cb('it schedules the next tick', (t) => {
+  const max = 2;
+  const delay = 0;
+
+  const expectedStates = [
+    { value: 0, max, delay },
+    { value: 1, max, delay },
+    { value: 1, max, delay },
+    { value: 2, max, delay },
+    { value: 2, max, delay },
+  ];
+
+  makeTestRig(max, delay, ([state]) => {
+    t.deepEqual(state, expectedStates.shift());
+    if (expectedStates.length === 0) {
+      t.end();
+    }
+  });
 });
