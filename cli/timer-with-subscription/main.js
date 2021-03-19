@@ -2,43 +2,43 @@ const ferp = require('ferp');
 
 const { updateLogger } = require('../common/updateLogger.js');
 
-const { every } = ferp.subscriptions;
+const { act, none } = ferp.effects;
 
-const { none } = ferp.effects;
+const every = (dispatch, onTick, milliseconds) => {
+  const tick = () => {
+    dispatch(onTick);
+  };
 
-const update = (message, previousState) => {
-  switch (message) {
-    case 'INCREMENT':
-      return [
-        previousState + 1,
-        none(),
-      ];
+  const handle = setInterval(tick, milliseconds);
 
-    default:
-      return [
-        previousState,
-        none(),
-      ];
-  }
+  return () => {
+    clearInterval(handle);
+  };
 };
 
-const subscribe = state => [
-  state < 5 && [every, 'INCREMENT', 1000],
+const Increment = (state) => [{ ...state, value: state.value + 1 }, none()];
+
+const init = (max, delay) => [
+  { value: 0, max, delay },
+  none(),
 ];
 
-const main = () => ferp.app({
-  init: [
-    0,
-    none(),
-  ],
+const subscribe = state => [
+  state.value < state.max && [every, Increment, state.delay],
+];
 
-  update: updateLogger(update),
+const main = (max, delay) => ferp.app({
+  init: init(max, delay),
 
   subscribe,
+
+  observe: updateLogger,
 });
 
 module.exports = {
-  update,
   subscribe,
+  every,
+  Increment,
+  init,
   main,
 };

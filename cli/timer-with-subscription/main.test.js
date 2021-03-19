@@ -1,35 +1,38 @@
 const test = require('ava');
-const { effects, subscriptions } = require('ferp');
-const { update, subscribe, main } = require('./main.js');
+const { app, effects } = require('ferp');
+const { subscribe, init, every, Increment } = require('./main.js');
 
-test('update increases the state with an INCREMENT message, and has no side-effects', (t) => {
-  const [nextState, nextEffects] = update('INCREMENT', 0);
-  t.is(nextState, 1);
-  t.deepEqual(nextEffects, effects.none());
-});
-
-test('update is a no-op with any non-INCREMENT message', (t) => {
-  const [nextState, nextEffects] = update('whatever', 0);
-  t.is(nextState, 0);
-  t.deepEqual(nextEffects, effects.none());
-});
-
-test('subscribe adds a subscription when the state value is less than 5', (t) => {
-  const results = subscribe(0);
-  t.deepEqual(results, [
-    [subscriptions.every, 'INCREMENT', 1000],
+test('subscription only runs when value is less than max', (t) => {
+  t.deepEqual(subscribe({ value: 0, max: 1, delay: 1 }), [
+    [every, Increment, 1]
   ]);
-});
-
-test('subscribe removes subscription when the state value is 5 or more', (t) => {
-  const results = subscribe(5);
-  t.deepEqual(results, [
+  t.deepEqual(subscribe({ value: 1, max: 1, delay: 1 }), [
     false,
   ]);
 });
 
-test('main creates the app', (t) => {
-  const detach = main();
-  t.is(typeof detach, 'function');
-  detach();
+test.cb('it runs the application until the value is larger than the max', (t) => {
+  const max = 2;
+  const delay = 0;
+  const makeState = (value) => ({ value, max, delay });
+  const expectedStates = [
+    0,
+    1,
+    2
+  ].map(makeState);
+
+  app({
+    init: init(max, delay),
+    subscribe,
+    observe: ([state, effect]) => {
+      const expectedState = expectedStates.shift();
+      t.deepEqual(state, expectedState);
+      t.deepEqual(effect, effects.none());
+      if (expectedStates.length === 0) {
+        t.end();
+      }
+    },
+  });
+
+
 });

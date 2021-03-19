@@ -4,65 +4,58 @@ const fetch = require('node-fetch');
 const { updateLogger } = require('../common/updateLogger.js');
 
 const {
+  act,
   batch,
   defer,
-  delay,
   none,
+  thunk,
 } = ferp.effects;
 
-const request = get => (url, number, successType = 'ADD_TODO_OK', failType = 'ADD_TODO_FAIL') => defer(
-  get(url)
+const getTodoItem = (id, onSuccess, onError, get) => defer(
+  get(`https://jsonplaceholder.typicode.com/todos/${id}`)
     .then(response => response.json())
-    .then(data => ({ type: successType, data }))
-    .catch(err => ({ type: failType, number, error: err })),
+    .then(data => act(onSuccess, data))
+    .catch(() => act(onError, id, get)),
 );
 
-const fetchTodoItem = number => request(fetch)(
-  `https://jsonplaceholder.typicode.com/todos/${number}`,
-  number,
-);
+const delay = (effect, milliseconds) => thunk(() => defer((resolve) => {
+  setTimeout(resolve, milliseconds, effect);
+}));
 
-const update = (message, state) => {
-  switch (message.type) {
-    case 'ADD_TODO_OK':
-      return [
-        {
-          todo: state.todo
-            .concat(message.data)
-            .sort((a, b) => a.id - b.id),
-        },
-        none(),
-      ];
+const todoToString = (item) => `[${item.completed ? 'X' : ' '}] ${item.id}: ${item.title}`;
 
-    case 'ADD_TODO_FAIL':
-      return [
-        state,
-        delay(1000, fetchTodoItem(message.number)),
-      ];
+const TodoAdd = (item) => (state) => [
+  { ...state, todo: state.todo.concat(todoToString(item)).sort() },
+  none(),
+];
 
-    default:
-      return [
-        state,
-        none(),
-      ];
-  }
-};
+const TodoFail = (id, get) => (state) => [
+  state,
+  delay(getTodoItem(id, TodoAdd, TodoFail, get), 250),
+];
+
+const TodoRequest = (id, get) => (state) => [
+  state,
+  getTodoItem(id, TodoAdd, TodoFail, get),
+];
+
+const init = (ids, get) => [
+  {
+    todo: [],
+  },
+  batch(ids.map(id => (
+    act(TodoRequest, id, get)
+  ))),
+];
 
 const main = () => ferp.app({
-  init: [
-    {
-      todo: [],
-    },
-    batch([4, 2, 5, 3, 1, 7, 6].map(number => (
-      fetchTodoItem(number, { type: 'ADD_TODO' })
-    ))),
-  ],
+  init: init([4, 2, 5, 3, 1, 7, 6], fetch),
 
-  update: updateLogger(update),
+  observe: updateLogger,
 });
 
 module.exports = {
-  request,
-  update,
+  init,
   main,
+  getTodoItem
 };

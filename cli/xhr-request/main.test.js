@@ -1,99 +1,54 @@
 const test = require('ava');
-const { effects } = require('ferp');
-const { request, update, main } = require('./main.js');
+const { app, effects } = require('ferp');
+const { init } = require('./main.js');
 
-test('request creates a success message on a successful get', (t) => {
-  const get = () => Promise.resolve({ json: () => Promise.resolve('test') });
-  const effect = request(get)('some-url-here', 1);
-  return effect.promise
-    .then((message) => {
-      t.deepEqual(message, {
-        type: 'ADD_TODO_OK',
-        data: 'test',
-      });
-    });
-});
+test.cb('fetches todo items successfully', (t) => {
+  const item = { id: 1, title: 'foo', completed: false };
+  const get = () => Promise.resolve({ json: () => Promise.resolve(item) });
 
-test('request creates a failure message on a bad get', (t) => {
-  const error = new Error('test');
-  const get = () => Promise.reject(error);
-  const effect = request(get)('some-url-here', 1);
-  return effect.promise
-    .then((message) => {
-      t.deepEqual(message, {
-        type: 'ADD_TODO_FAIL',
-        number: 1,
-        error,
-      });
-    });
-});
+  const expectedStates = [
+    { todo: [] },
+    { todo: [] },
+    { todo: [`[ ] ${item.id}: ${item.title}`] },
+  ];
 
-test('update message ADD_TODO_OK will add and sort the todos by id', (t) => {
-  const previousState = {
-    todo: [
-      { id: 1 },
-      { id: 5 },
-    ],
-  };
-
-  const message = {
-    type: 'ADD_TODO_OK',
-    data: { id: 4 },
-  };
-
-  const [nextState, nextEffects] = update(message, previousState);
-  t.deepEqual(nextState, {
-    todo: [
-      { id: 1 },
-      { id: 4 },
-      { id: 5 },
-    ],
+  app({
+    init: init([1], get),
+    observe: ([state]) => {
+      const expectedState = expectedStates.shift();
+      t.deepEqual(state, expectedState);
+      if (expectedStates.length === 0) {
+        t.end();
+      }
+    },
   });
-  t.deepEqual(nextEffects, effects.none());
 });
 
-test('update message ADD_TODO_FAIL will retry the fetch', (t) => {
-  const previousState = {
-    todo: [
-      { id: 1 },
-      { id: 5 },
-    ],
+test.cb('fetches todo items with a failure, then successful response', (t) => {
+  const item = { id: 1, title: 'foo', completed: false };
+  const responses = [
+    Promise.reject(new Error()),
+    Promise.resolve({ json: () => Promise.resolve(item) })
+  ];
+  const get = () => {
+    return responses.shift();
   };
 
-  const message = {
-    type: 'ADD_TODO_FAIL',
-    number: 2,
-  };
+  const expectedStates = [
+    { todo: [] },
+    { todo: [] },
+    { todo: [] },
+    { todo: [`[ ] ${item.id}: ${item.title}`] },
+  ];
 
-  const [nextState, nextEffects] = update(message, previousState);
-  t.deepEqual(nextState, {
-    todo: [
-      { id: 1 },
-      { id: 5 },
-    ],
+  app({
+    init: init([1], get),
+    observe: ([state]) => {
+      const expectedState = expectedStates.shift();
+      t.deepEqual(state, expectedState);
+      if (expectedStates.length === 0) {
+        t.end();
+      }
+    },
   });
-  t.deepEqual(nextEffects.type, effects.thunk().type);
-});
-
-test('update will no-op unhandled messages', (t) => {
-  const previousState = {
-    todo: [
-      { id: 1 },
-      { id: 5 },
-    ],
-  };
-
-  const message = {
-    type: 'whatever',
-  };
-
-  const [nextState, nextEffects] = update(message, previousState);
-  t.deepEqual(nextState, previousState);
-  t.deepEqual(nextEffects, effects.none());
-});
-
-test('main creates the app', (t) => {
-  const detach = main();
-  t.is(typeof detach, 'function');
-  detach();
 });

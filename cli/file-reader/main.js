@@ -1,5 +1,4 @@
 const ferp = require('ferp');
-const fs = require('fs');
 const path = require('path');
 
 const { updateLogger } = require('../common/updateLogger.js');
@@ -18,7 +17,7 @@ const readEffect = (file, onSuccess, onError, readFile) => defer((resolve) => {
 const ReadOk = (data) => (state) => [{ ...state, content: data }, none()];
 const ReadErr = (error) => (state) => [{ ...state, error: error.message }, none()];
 
-const init = (file, readFile = fs.readFile) => [
+const init = (file, readFile) => [
   { file, content: '', error: '' },
   readEffect(
     path.resolve(__dirname, file),
@@ -28,7 +27,7 @@ const init = (file, readFile = fs.readFile) => [
   ),
 ];
 
-const main = (file = 'hello-world.txt', readFileFn = fs.readFile) => ferp.app({
+const main = (file, readFileFn) => ferp.app({
   init: init(file, readFileFn),
   observe: updateLogger,
 });

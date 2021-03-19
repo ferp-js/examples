@@ -25,10 +25,3 @@ Demonstrates working with subscriptions.
 
 Hit a demo todo list api using effects.
 Demonstrates batching effects, and out of order messages.
-
-## Running
-
-```bash
-yarn
-yarn start ./{file-reader,timer-with-effects,timer-with-subscription,xhr-request}
-```

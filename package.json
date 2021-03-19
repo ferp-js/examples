@@ -1,0 +1,32 @@
+{
+  "name": "ferp-examples",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:ferp-js/examples.git",
+  "author": "Alex Barry <alex.barry@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "nyc ava",
+    "cli:file-reader": "node cli/file-reader",
+    "cli:timer-effects": "node cli/timer-with-effects",
+    "cli:timer-subscription": "node cli/timer-with-subscription",
+    "cli:xhr-request": "node cli/xhr-request"
+  },
+  "devDependencies": {
+    "ava": "^3.15",
+    "nyc": "^15.1.0",
+    "sinon": "^9"
+  },
+  "ava": {
+    "files": [
+      "./**/*.test.js"
+    ],
+    "cache": false,
+    "failFast": true,
+    "verbose": true
+  },
+  "dependencies": {
+    "ferp": "^2.0",
+    "node-fetch": "^2.2.0"
+  }
+}
