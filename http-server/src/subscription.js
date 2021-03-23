@@ -1,6 +1,6 @@
-const serverSubscription = (createServer, port, messageType) => (dispatch) => {
+const serverSubscription = (dispatch, createServer, port, RouteAction) => {
   const server = createServer((request, response) => {
-    dispatch({ type: messageType, request, response });
+    dispatch(RouteAction(request, response), 'RouteAction');
   });
 
   server.on('clientError', (err, socket) => {

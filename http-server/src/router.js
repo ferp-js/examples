@@ -1,56 +1,30 @@
 const ferp = require('ferp');
-const url = require('url');
+// const url = require('url');
 
-const { batch, none } = ferp.effects;
+const { act, defer, none } = ferp.effects;
 
-const requestToMatcher = (request, parsed) => (
-  `${request.method.toUpperCase()} ${parsed.pathname}`
-);
+const DefaultNotFoundAction = (_request, response) =>
+  (state) =>
+    [state, response(404, {}, 'Not found')];
 
-const logEffect = (date, request, parsed, matcher) => {
-  const log = {
-    date: date.toISOString(),
-    address: request.socket.address().address,
-    matcher,
-    parsed,
+const responseEffect = (response) => (status = 200, headers = {}, body = '') => defer((done) => {
+  response.writeHead(status, headers);
+  response.end(body, () => done(none()));
+});
+
+const makeRouteAction = (routeMap = {}, NotFoundAction = DefaultNotFoundAction) =>
+  (request, response) => (state) => {
+    const path = request.url.split('?')[0];
+    const method = request.method;
+
+    const action = routeMap[`${method} ${path}`] || NotFoundAction;
+
+    return [
+      { ...state, logs: state.logs.concat(Date.now()) }, // log the request to memory
+      act(action, request, responseEffect(response)),
+    ];
   };
-  return { type: 'LOG', log };
-};
-
-const router = routes => (message, state) => {
-  switch (message.type) {
-    case 'ROUTE':
-      return (() => {
-        const parsed = url.parse(message.request.url);
-        const matcher = requestToMatcher(message.request, parsed);
-
-        const handler = routes[matcher] || routes['GET /not-found'];
-        if (!handler) return [state, none()];
-
-        const [nextState, effect] = handler(message, state, parsed);
-
-        return [
-          nextState,
-          batch([
-            effect,
-            logEffect(new Date(), message.request, matcher),
-          ]),
-        ];
-      })();
-
-    case 'LOG':
-      return [
-        { ...state, logs: [message.log].concat(state.logs) },
-        none(),
-      ];
-
-    default:
-      return [state, none()];
-  }
-};
 
 module.exports = {
-  requestToMatcher,
-  logEffect,
-  router,
+  makeRouteAction,
 };

@@ -1,33 +1,57 @@
 const http = require('http');
 const ferp = require('ferp');
+const fs = require('fs/promises');
+const path = require('path');
+const pug = require('pug');
 
-const { router } = require('./router.js');
+const { makeRouteAction} = require('./router.js');
 const { serverSubscription } = require('./subscription.js');
 
-const { defer, none } = ferp.effects;
+const { none, defer } = ferp.effects;
 
-const responseEffect = ({ response }, status, json) => defer(new Promise((done) => {
-  response.writeHead(status, { 'Content-Type': 'application/json' });
-  response.end(JSON.stringify(json), () => done(none()));
-}));
+const pugBaseDirectory = path.resolve(__dirname, '..', 'resources', 'views');
 
-const showState = (message, state) => [state, responseEffect(message, 200, { instructions: 'Refresh the page a few times, or hit the url from different browsers/computers', logs: state.logs })];
-const fourOhFour = (message, state) => [state, responseEffect(message, 404, { error: 'not found' })];
+const pugify = (responseEffect) => (status, pugFile, variables) => {
+  const filename = path.resolve(pugBaseDirectory, pugFile.replace(/\./, '/') + '.pug');
+  return defer(fs.readFile(filename, { encoding: 'utf8' })
+    .then((pugSource) => {
+      const html = pug.render(pugSource, { ...variables, filename, basedir: pugBaseDirectory });
 
-const main = () => ferp.app({
-  init: [{ logs: [] }, none()],
+      return responseEffect(
+        status,
+        {},
+        html,
+      );
+    })
+    .catch((err) => {
+      console.log('oh shit', err);
+      return responseEffect(500, {}, JSON.stringify(err, null, 2));
+    })
+  );
+};
 
-  update: router({
-    'GET /': showState,
-    'GET /not-found': fourOhFour,
-  }),
-
-  subscribe: () => [
-    [serverSubscription, http.createServer, 8080, 'ROUTE'],
+const RouteAction = makeRouteAction({
+  'GET /': (_request, responseEffect) => (state) => [
+    state,
+    pugify(responseEffect)(200, 'pages.index'),
   ],
 });
 
+const main = () => ferp.app({
+  init: [
+    { logs: [] },
+    none(),
+  ],
+
+  subscribe: () => [
+    [serverSubscription, http.createServer, 8080, RouteAction],
+  ],
+
+  observe: (_tuple, nameOfAction) => {
+    console.log((new Date()).toString(), nameOfAction);
+  },
+});
+
 module.exports = {
-  responseEffect,
   main,
 };
