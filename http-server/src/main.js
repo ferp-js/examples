@@ -30,11 +30,13 @@ const pugify = (responseEffect) => (status, pugFile, variables) => {
   );
 };
 
+const makeHtmlAction = (status, pugFile, variables) => (_request, responseEffect) => (state) => [
+  state,
+  pugify(responseEffect)(status, pugFile, variables),
+];
+
 const RouteAction = makeRouteAction({
-  'GET /': (_request, responseEffect) => (state) => [
-    state,
-    pugify(responseEffect)(200, 'pages.index'),
-  ],
+  'GET /': makeHtmlAction(200, 'pages.index'),
 });
 
 const main = () => ferp.app({
