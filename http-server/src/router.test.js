@@ -1,54 +1,116 @@
 const test = require('ava');
 const sinon = require('sinon');
+const { URL } = require('url');
 const { effects } = require('ferp');
-const { requestToMatcher, router } = require('./router.js');
+const appTestRig = require('../../support/appTestRig.js');
+const { DefaultNotFoundAction, makeResponseEffect, makeRouteAction } = require('./router.js');
 
-test('requestToMatcher', (t) => {
-  t.is(
-    requestToMatcher({ method: 'get' }, { pathname: '/index.html' }),
-    'GET /index.html',
-  );
+const fakeResponse = () => ({
+  writeHead: sinon.fake(),
+  end: sinon.fake((_, callback) => callback()),
 });
 
-test('route uses 404 when available', (t) => {
-  const message = {
-    type: 'ROUTE',
-    request: {
-      method: 'get',
-      url: 'http://localhost:8080/index.html',
-      socket: {
-        address: () => ({ address: 'fake' }),
-      },
-    },
+const makeRequestObject = (method, fullUrl, headers = {}, body = undefined) => {
+  const url = new URL(fullUrl);
+  return {
+    key: `${method.toUpperCase()} ${url.pathname}`,
+    url,
+    headers,
+    body,
   };
+};
+
+test('DefaultNotFoundAction returns a 404 with text Not found', (t) => {
+  const tacos = {};
+  const response = sinon.fake(() => tacos);
+  const state = {};
+
+  const result = DefaultNotFoundAction(null, response)(state);
+
+  t.is(result[0], state);
+  t.is(result[1], tacos);
+  t.truthy(response.calledOnceWithExactly(404, {}, 'Not found'));
+});
+
+test.cb('responseEffect calls writeHead and ends the response', (t) => {
+  const response = fakeResponse();
+
+  const status = 400;
+  const headers = { 'Content-Type': 'application/json' }
+  const body = JSON.stringify({ error: true });
+
+  const EndTest = (state) => [state, effects.none()];
+
+  const responseFx = makeResponseEffect({ remote: {}, headers: {} }, response, 0, effects.act(EndTest));
+
   const initialState = { logs: [] };
-  const fakeRoute = sinon.fake.returns([initialState, effects.none()]);
-  const [state, fx] = router({
-    'GET /not-found': fakeRoute,
-  })(message, initialState);
 
-  t.deepEqual(state, initialState);
-  t.is(fx.type, effects.batch([]).type);
-});
-
-test('route does not handle ROUTE message with an unmatched route', (t) => {
-  const message = {
-    type: 'ROUTE',
-    request: {
-      method: 'get',
-      url: 'http://localhost:8080/index.html',
+  appTestRig({
+    init: [
+      initialState,
+      responseFx(status, headers, body),
+    ],
+  }, [
+    () => {}, // Ignore init action
+    (state, effect, actionName) => {
+      t.is(actionName, 'LogAction');
     },
+    (state, effect, actionName) => {
+      t.is(state.logs.length, 1);
+      t.is(actionName, 'EndTest');
+      t.deepEqual(effect, effects.none());
+      t.truthy(response.writeHead.calledOnceWithExactly(status, headers), 'called writeHeader');
+      t.truthy(response.end.calledOnceWithExactly(body, sinon.match.any), 'called end');
+      t.end();
+    },
+  ]);
+});
+
+test('makeRouteAction creates an action with an any-mimetype known url', (t) => {
+  const TestRoute = (_request, responseFx) => (state) => [
+    state,
+    responseFx(200, {}, ''),
+  ];
+
+  const RouteAction = makeRouteAction({
+    'GET /': TestRoute,
+  });
+
+  const response = fakeResponse();
+  const request = makeRequestObject('GET', 'http://localhost/');
+
+  const initialState = {
+    logs: [],
   };
-  const result = router({})(message, { logs: [] });
-  t.deepEqual(result, [{ logs: [] }, effects.none()]);
+
+  const result = RouteAction(request, response)(initialState);
+
+  t.is(result[0].logs.length, 1);
 });
 
-test('router handles LOG message by appending to front', (t) => {
-  const result = router()({ type: 'LOG', log: 'TEST' }, { logs: ['ORIGINAL'] });
-  t.deepEqual(result, [{ logs: ['TEST', 'ORIGINAL'] }, effects.none()]);
-});
+test('makeRouteAction creates an action with an unknown url', (t) => {
+  const TestRoute = (_request, responseFx) => (state) => [
+    state,
+    responseFx(200, {}, ''),
+  ];
 
-test('router does nothing on unhandled message', (t) => {
-  const result = router()({ type: 'TEST' }, 1);
-  t.deepEqual(result, [1, effects.none()]);
+  const NotFoundRoute = (_request, responseFx) => (state) => [
+    state,
+    responseFx(404, {}, 'Not found'),
+  ];
+
+  const RouteAction = makeRouteAction({
+    'GET /': TestRoute,
+  }, NotFoundRoute);
+
+  const response = fakeResponse();
+  const request = makeRequestObject('GET', 'http://localhost/');
+
+  const initialState = {
+    logs: [],
+  };
+
+  const result = RouteAction(request, response)(initialState);
+
+  t.is(result[0].logs.length, 1);
 });

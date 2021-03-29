@@ -1,4 +1,36 @@
 extends ../layouts/index
 
 block content
-  | Hello, and welcome
+  .min-h-screen.bg-gray-100.py-6.flex.flex-col.justify-center( class="sm:py-12" )
+    .py-3( class="sm:max-w-xl sm:mx-auto" )
+      .px-4.py-10.bg-white.shadow-lg( class="sm:rounded-3xl sm:p-20" )
+        .max-w-md.mx-auto
+          .divide-y.divide-gray-200
+            .py-8.text-base.leading-6.space-y-4.text-gray-700( class="sm:text-lg sm:leading-7" )
+              h1.text-lg.font-bold Hello from Ferp
+              p Ferp is great at a lot of stuff, including:
+              ul.list-disc.space-y-2
+                li.flex.items-start
+                  span.h-6.flex.items-center( class="sm:h-7" )
+                    <svg class="flex-shrink-0 h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  p.ml-2 Building immutable, state-driven applications.
+                li.flex.items-start
+                  span.h-6.flex.items-center( class="sm:h-7" )
+                    <svg class="flex-shrink-0 h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  p.ml-2 Managing side effects declaratively.
+                li.flex.items-start
+                  span.h-6.flex.items-center( class="sm:h-7" )
+                    <svg class="flex-shrink-0 h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  p.ml-2 Unit and feature testing.
+                li.flex.items-start
+                  span.h-6.flex.items-center( class="sm:h-7" )
+                    <svg class="flex-shrink-0 h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  p.ml-2 Running your application as fast as possible.
