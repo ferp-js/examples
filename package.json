@@ -1,7 +1,6 @@
 {
   "name": "ferp-examples",
   "version": "1.0.0",
-  "main": "index.js",
   "repository": "git@github.com:ferp-js/examples.git",
   "author": "Alex Barry <alex.barry@gmail.com>",
   "license": "MIT",
@@ -11,24 +10,32 @@
     "cli:timer-effects": "node cli/timer-with-effects",
     "cli:timer-subscription": "node cli/timer-with-subscription",
     "cli:xhr-request": "node cli/xhr-request",
-    "http": "node http-server/src/index.js"
+    "http": "node http-server/src/index.js",
+    "superfine": "parcel ./with-superfine/src/index.html"
   },
   "devDependencies": {
     "ava": "^3.15",
+    "esm": "^3.2.25",
     "nyc": "^15.1.0",
+    "parcel-bundler": "^1.12.5",
     "sinon": "^9"
   },
   "ava": {
     "files": [
       "./**/*.test.js"
     ],
+    "match": [
+      "!node_modules"
+    ],
     "cache": false,
     "failFast": true,
-    "verbose": true
+    "verbose": true,
+    "require": ["esm"]
   },
   "dependencies": {
     "ferp": "^2.0",
     "node-fetch": "^2.2.0",
-    "pug": "^3.0.2"
+    "pug": "^3.0.2",
+    "superfine": "^8.2.0"
   }
 }
