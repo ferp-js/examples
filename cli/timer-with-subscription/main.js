@@ -2,11 +2,11 @@ const ferp = require('ferp');
 
 const { updateLogger } = require('../common/updateLogger.js');
 
-const { act, none } = ferp.effects;
+const { none } = ferp.effects;
 
 const every = (dispatch, onTick, milliseconds) => {
   const tick = () => {
-    dispatch(onTick);
+    dispatch(onTick, 'onTick');
   };
 
   const handle = setInterval(tick, milliseconds);

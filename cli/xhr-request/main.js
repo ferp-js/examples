@@ -57,5 +57,6 @@ const main = () => ferp.app({
 module.exports = {
   init,
   main,
-  getTodoItem
+  getTodoItem,
+  todoToString,
 };

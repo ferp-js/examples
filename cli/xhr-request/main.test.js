@@ -1,6 +1,6 @@
 const test = require('ava');
 const { app, effects } = require('ferp');
-const { init } = require('./main.js');
+const { init, todoToString } = require('./main.js');
 
 test.cb('fetches todo items successfully', (t) => {
   const item = { id: 1, title: 'foo', completed: false };
@@ -51,4 +51,8 @@ test.cb('fetches todo items with a failure, then successful response', (t) => {
       }
     },
   });
+});
+
+test('todoToString shows completed', (t) => {
+  t.is(todoToString({ title: 'test', completed: true, id: 1 }), '[X] 1: test');
 });
