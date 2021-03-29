@@ -1,69 +1,73 @@
-const ferp = require('ferp');
-const { h, patch } = require('superfine');
-
-const { superfineEffect } = require('./superfineEffect.js');
+import * as  ferp from 'ferp';
+import * as superfineObserver from './superfineObserver';
 
 const { none } = ferp.effects;
 
-const view = (state, dispatch) => (
-  h('div', null, [
-    h(
-      'div',
-      {
-        style: {
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-      },
-      [
-        h('button', { type: 'button', onclick: () => dispatch({ type: 'SET', value: state.value - 1 }) }, '-'),
-        h('h1', { style: { width: '200px', textAlign: 'center' } }, state.value),
-        h('button', { type: 'button', onclick: () => dispatch({ type: 'SET', value: state.value + 1 }) }, '+'),
-      ],
-    ),
-  ])
-);
+export const IncrAction = (state) => [
+  { ...state, value: state.value + 1 },
+  none(),
+];
 
-const render = (state, dispatch, doc = document) => (
-  patch(state.node, view(state, dispatch), doc.body)
-);
+export const DecrAction = (state) => [
+  { ...state, value: state.value - 1 },
+  none(),
+];
 
-const initialState = { value: 0, node: document.querySelector('#app') };
+export const upgradeHWithDispatch = (h, dispatch) => {
+  return (tag, originalProps, children) => {
+    const props = Object.keys(originalProps).reduce((newProps, key) => {
+      let prop = originalProps[key];
+      if (key.startsWith('on')) {
+        prop = (event) => {
+          dispatch(originalProps[key](event));
+        };
+      }
+      newProps[key] = prop;
+      return newProps;
+    }, {});
 
-const update = (message, state) => {
-  switch (message.type) {
-    case 'SET':
-      return (() => {
-        const nextState = { node: state.node, value: message.value };
-        return [
-          nextState,
-          superfineEffect(render, nextState, { type: 'UPDATE_NODE' }),
-        ];
-      })();
+    return h(tag, props, children);
+  };
 
-    case 'UPDATE_NODE':
-      return [
-        { node: message.node, value: state.value },
-        none(),
-      ];
-
-    default:
-      return [state, none()];
-  }
 };
 
-const main = () => ferp.app({
-  init: [
-    initialState,
-    superfineEffect(render, initialState, { type: 'UPDATE_NODE' }),
-  ],
+export const initialState = { value: 0 };
 
-  update,
-});
+export const main = (replaceElement, { patch, h: superfineH, text }) => {
+  let realDispatch = () => {};
+  const dispatch = (action, actionName) => realDispatch(action, actionName);
 
-module.exports = {
-  update,
-  main,
+  const h = upgradeHWithDispatch(superfineH, dispatch);
+
+  const view = (state) => (
+    h('div', {}, [
+      h(
+        'div',
+        {
+          style: {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        },
+        [
+          h('button', { type: 'button', onclick: () => DecrAction }, text('-')),
+          h('h1', { style: { width: '200px', textAlign: 'center' } }, text(state.value.toString())),
+          h('button', { type: 'button', onclick: () => IncrAction }, text('+')),
+        ],
+      ),
+    ])
+  );
+
+  realDispatch = ferp.app({
+    init: [
+      initialState,
+      none(),
+    ],
+
+    observe: superfineObserver.make(patch, replaceElement, view),
+  });
+
+  return realDispatch;
 };
